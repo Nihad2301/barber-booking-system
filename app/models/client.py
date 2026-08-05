@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from app.database import Base
+from app.auth.models import User
 
 class Client(Base):
     __tablename__ = "clients"
@@ -10,3 +11,4 @@ class Client(Base):
     
     # Relationships
     bookings = relationship("Booking", back_populates="client")
+    user = relationship("User", back_populates="client")

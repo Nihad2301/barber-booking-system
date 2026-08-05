@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
+from app.auth.models import User
 
 class Barber(Base):
     __tablename__ = "barbers"
@@ -17,7 +18,7 @@ class Barber(Base):
     slots = relationship("Slot", back_populates="barber")
     bookings = relationship("Booking", back_populates="barber")
     services = relationship("Service", secondary="barber_services", back_populates="barbers")
-
+    user = relationship("User", back_populates="barber")
 
 # Join table for Barber-Service many-to-many relationship
 class BarberService(Base):
