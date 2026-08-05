@@ -8,7 +8,7 @@ class Barber(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     shop_id = Column(Integer, ForeignKey("shops.id"), nullable=False)
-    is_owner = Column(Boolean, default=False)
+    is_owner = Column(Boolean, nullable=False, default=False)
     slot_duration = Column(Integer, nullable=False)  # in minutes
     
     # Relationships
