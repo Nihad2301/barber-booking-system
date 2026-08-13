@@ -11,6 +11,7 @@ class Barber(Base):
     shop_id = Column(Integer, ForeignKey("shops.id"), nullable=False)
     is_owner = Column(Boolean, nullable=False, default=False)
     slot_duration = Column(Integer, nullable=False)  # in minutes
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # Relationships
     shop = relationship("Shop", back_populates="barbers")

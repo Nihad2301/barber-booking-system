@@ -1,5 +1,5 @@
 # User model for authentication
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -12,9 +12,6 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     user_type = Column(String, nullable=False)  # "client", "barber"
 
-    client_id = Column(Integer, ForeignKey("clients.id"), nullable=True)
-    barber_id = Column(Integer, ForeignKey("barbers.id"), nullable=True)
-
-    # Relationships
-    client = relationship("Client", back_populates="user")
-    barber = relationship("Barber", back_populates="user")
+    # Relationships (reverse relationships from Client/Barber)
+    client = relationship("Client", back_populates="user", uselist=False)
+    barber = relationship("Barber", back_populates="user", uselist=False)
