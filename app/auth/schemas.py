@@ -41,6 +41,9 @@ class UserResponse(BaseModel):
     username: str
     email: str
     user_type: str
+
+    class Config:
+        from_attributes = True
  
 class UserUpdate(BaseModel):
     username: Optional[str] = Field(default=None, min_length=3, max_length=50)
@@ -77,4 +80,13 @@ class MessageResponse(BaseModel):
  
 class DataResponse(BaseModel):
     message: str
-    data: Dict[str, Any]  # JSON-compatible dictionary    
+    data: Dict[str, Any]  # JSON-compatible dictionary  
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: UserResponse
