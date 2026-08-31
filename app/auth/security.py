@@ -1,7 +1,7 @@
 # Password hashing and JWT utilities
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
-from jose import jwt
+from jose import jwt, JWTError
 from config import settings
 
 # Password hashing
@@ -17,7 +17,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 ALGORITHM = "HS256"
 SECRET_KEY = settings.SECRET_KEY
-    
 
 def generate_token(data: dict, expires_in: int = 3600) -> str:
     """Generate a JWT token"""
@@ -32,5 +31,5 @@ def verify_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except jwt.JWTError:
+    except JWTError:
         raise Exception("Invalid token")    
