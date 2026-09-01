@@ -90,3 +90,10 @@ class LoginResponse(BaseModel):
     access_token: str
     token_type: str
     user: UserResponse
+
+class SendEmailRequest(BaseModel):
+    email: EmailStr
+
+class VerificationRequest(BaseModel):
+    email: EmailStr
+    code: str
