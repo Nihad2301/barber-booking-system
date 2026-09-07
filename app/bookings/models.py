@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, ForeignKey, String
 from sqlalchemy.orm import relationship
-from app.database import Base
+from app.base import Base
 
 class Booking(Base):
     __tablename__ = "bookings"
@@ -12,8 +12,7 @@ class Booking(Base):
     shop_id = Column(Integer, ForeignKey("shops.id"), nullable=False)
     service_id = Column(Integer, ForeignKey("services.id"), nullable=False)
     status = Column(String, nullable=False)  # "confirmed", "cancelled_by_client", "cancelled_by_barber", "completed"
-    
-    # Relationships
+
     slot = relationship("Slot", back_populates="bookings")
     client = relationship("Client", back_populates="bookings")
     barber = relationship("Barber", back_populates="bookings")

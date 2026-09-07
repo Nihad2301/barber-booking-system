@@ -1,6 +1,6 @@
-from sqlalchemy import Column, Integer, ForeignKey, String, Time
+from sqlalchemy import Column, Integer, ForeignKey, Time, String
 from sqlalchemy.orm import relationship
-from app.database import Base
+from app.base import Base
 
 class WorkingHours(Base):
     __tablename__ = "working_hours"

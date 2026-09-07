@@ -1,3 +1,4 @@
+from app.auth.models import User
 from app.shops.models import Shop
 from app.barbers.models import Barber, BarberService
 from app.clients.models import Client

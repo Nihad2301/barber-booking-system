@@ -1,8 +1,10 @@
 # Pydantic schemas for authentication
 from pydantic import BaseModel, EmailStr, validator, Field
-from typing import Optional, Dict, Any
+from typing import Optional, Generic, TypeVar
 from enum import Enum
 import re
+
+T = TypeVar('T')
 
 class UserType(str, Enum):
     CLIENT = "client"
@@ -78,9 +80,9 @@ class UserUpdate(BaseModel):
 class MessageResponse(BaseModel):
     message: str
  
-class DataResponse(BaseModel):
+class DataResponse(BaseModel, Generic[T]):
     message: str
-    data: Dict[str, Any]  # JSON-compatible dictionary  
+    data: T  
 
 class LoginRequest(BaseModel):
     username: str

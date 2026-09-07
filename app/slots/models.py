@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, ForeignKey, DateTime, String
 from sqlalchemy.orm import relationship
-from app.database import Base
+from app.base import Base
 
 class Slot(Base):
     __tablename__ = "slots"
@@ -13,6 +13,6 @@ class Slot(Base):
     status = Column(String, nullable=False)  # "open", "claimed", "cancelled"
     
     # Relationships
-    barber = relationship("Barber", back_populates="slots")
     shop = relationship("Shop", back_populates="slots")
+    barber = relationship("Barber", back_populates="slots")
     bookings = relationship("Booking", back_populates="slot")
