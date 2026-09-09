@@ -3,6 +3,7 @@ from .models import Barber
 from app.shops.models import Shop
 from sqlalchemy.orm import Session
 from app.auth.service import _build_user
+from app.auth.exceptions import NotFoundError
 
 def register_barber(
     db: Session,
@@ -19,7 +20,7 @@ def register_barber(
             Shop.accepting_new_barbers == True
         ).first()
         if not shop:
-            raise ValueError("Shop not found or not accepting new barbers")
+            raise NotFoundError("Shop not found or not accepting new barbers")
 
         user = _build_user(db, username, password, email, "barber")       
         barber = Barber(user_id=user.id, name=name, slot_duration=slot_duration)
