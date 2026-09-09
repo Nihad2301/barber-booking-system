@@ -11,6 +11,7 @@ class Barber(Base):
     is_owner = Column(Boolean, nullable=False, default=False)
     slot_duration = Column(Integer, nullable=False)  # in minutes
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True)
 
     # Relationships
     user = relationship("User")

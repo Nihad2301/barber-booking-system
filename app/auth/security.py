@@ -1,8 +1,9 @@
 # Password hashing and JWT utilities
 from passlib.context import CryptContext
+from jose import JWTError, jwt, ExpiredSignatureError
 from datetime import datetime, timedelta
-from jose import jwt, JWTError
-from app.config import settings
+from .config import settings
+from .exceptions import InvalidTokenError, ExpiredTokenError
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -31,5 +32,7 @@ def verify_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
+    except ExpiredSignatureError:
+        raise ExpiredTokenError("Token has expired")
     except JWTError:
-        raise Exception("Invalid token")    
+        raise InvalidTokenError("Invalid token")    

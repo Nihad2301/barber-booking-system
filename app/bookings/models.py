@@ -11,7 +11,7 @@ class Booking(Base):
     barber_id = Column(Integer, ForeignKey("barbers.id"), nullable=False)
     shop_id = Column(Integer, ForeignKey("shops.id"), nullable=False)
     service_id = Column(Integer, ForeignKey("services.id"), nullable=False)
-    status = Column(String, nullable=False)  # "confirmed", "cancelled_by_client", "cancelled_by_barber", "completed"
+    status = Column(String, nullable=False)  # "confirmed", "cancelled_by_client", "cancelled_by_barber", "barber_left", "shop_closed", "completed"
 
     slot = relationship("Slot", back_populates="bookings")
     client = relationship("Client", back_populates="bookings")

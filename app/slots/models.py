@@ -10,7 +10,7 @@ class Slot(Base):
     shop_id = Column(Integer, ForeignKey("shops.id"), nullable=False)
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime, nullable=False)
-    status = Column(String, nullable=False)  # "open", "claimed", "cancelled"
+    status = Column(String, nullable=False)  # "open", "claimed", "cancelled", "barber_left", "shop_closed"
     
     # Relationships
     shop = relationship("Shop", back_populates="slots")

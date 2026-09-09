@@ -9,6 +9,7 @@ class Shop(Base):
     name = Column(String, nullable=False)
     location = Column(String, nullable=False)
     accepting_new_barbers = Column(Boolean, nullable=False, default=True)
+    is_active = Column(Boolean, nullable=False, default=True)
     
     # Relationships
     barbers = relationship("Barber", back_populates="shop")

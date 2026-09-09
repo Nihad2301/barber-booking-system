@@ -1,5 +1,5 @@
 # Pydantic schemas for authentication
-from pydantic import BaseModel, EmailStr, validator, Field
+from pydantic import BaseModel, EmailStr, field_validator, Field
 from typing import Optional, Generic, TypeVar
 from enum import Enum
 import re
@@ -16,19 +16,22 @@ class UserBuild(BaseModel):
     password: str = Field(..., min_length=8, max_length=128)
     user_type: UserType # "client" or "barber"
 
-    @validator("username", "password")
+    @field_validator("username", "password")
+    @classmethod
     def validate_fields(cls, v):
         if not v or not v.strip():
             raise ValueError("Field cannot be empty")
         return v.strip()
-    
-    @validator("username")
+
+    @field_validator("username")
+    @classmethod
     def validate_username(cls, v):
         if not re.match(r'^[a-zA-Z0-9_-]+$', v):
             raise ValueError("Username can only contain letters, numbers, underscores, and hyphens")
         return v
 
-    @validator("password")
+    @field_validator("password")
+    @classmethod
     def validate_password_complexity(cls, v):
         if not re.search(r'[A-Z]', v):
             raise ValueError("Password must contain at least one uppercase letter")
@@ -52,20 +55,23 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = Field(default=None)
     password: Optional[str] = Field(default=None, min_length=8, max_length=128)
 
-    @validator("username", "password")
+    @field_validator("username", "password")
+    @classmethod
     def validate_fields(cls, v):
         if v and not v.strip():
             raise ValueError("Field cannot be empty")
         return v.strip() if v else v
 
-    @validator("username")
+    @field_validator("username")
+    @classmethod
     def validate_username(cls, v):
         if v:
             if not re.match(r'^[a-zA-Z0-9_-]+$', v):
                 raise ValueError("Username can only contain letters, numbers, underscores, and hyphens")
         return v
 
-    @validator("password")
+    @field_validator("password")
+    @classmethod
     def validate_password_complexity(cls, v):
         if v:
             if not re.search(r'[A-Z]', v):

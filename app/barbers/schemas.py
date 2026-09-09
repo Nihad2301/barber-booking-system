@@ -1,5 +1,5 @@
 # Barber Pydantic schemas
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 import re
 
 class BarberRegister(BaseModel):
@@ -10,19 +10,22 @@ class BarberRegister(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     slot_duration: int = Field(default=30, gt=0)
 
-    @validator("username", "password", "name")
+    @field_validator("username", "password", "name")
+    @classmethod
     def validate_fields(cls, v):
         if not v or not v.strip():
             raise ValueError("Field cannot be empty")
         return v.strip()
-    
-    @validator("username")
+
+    @field_validator("username")
+    @classmethod
     def validate_username(cls, v):
         if not re.match(r'^[a-zA-Z0-9_-]+$', v):
             raise ValueError("Username can only contain letters, numbers, underscores, and hyphens")
         return v
 
-    @validator("password")
+    @field_validator("password")
+    @classmethod
     def validate_password_complexity(cls, v):
         if not re.search(r'[A-Z]', v):
             raise ValueError("Password must contain at least one uppercase letter")
