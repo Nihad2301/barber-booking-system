@@ -40,7 +40,7 @@ def update_shop(shop_id: int, shop: ShopUpdateRequest, db: Session = Depends(get
 @router.delete("/{shop_id}", response_model=MessageResponse)
 def delete_shop(shop_id: int, db: Session = Depends(get_db), verified_user: dict = Depends(require_verified_email)):
     user_id = verified_user.get("user_id")
-    delete_shop(db, shop_id, user_id)
-    return MessageResponse(message="Shop deleted successfully")
+    result = delete_shop(db, user_id, shop_id)
+    return MessageResponse(**result)
     
     

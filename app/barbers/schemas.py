@@ -6,7 +6,6 @@ import re
 from pydantic.functional_validators import model_validator
 
 class BarberRegister(BaseModel):
-    shop_id: int
     username: str = Field(..., min_length=3, max_length=50)
     password: str = Field(..., min_length=8, max_length=128)
     email: EmailStr

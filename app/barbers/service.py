@@ -89,7 +89,8 @@ def update_self_barber(db: Session, user_id: int, barber_id: int, shop_id: int, 
         raise ForbiddenError("You can only update your own profile")
     
     for key, value in self_barber_data.items():
-        setattr(barber, key, value)
+        if value is not None:
+            setattr(barber, key, value)
 
     db.commit()
     db.refresh(barber)
@@ -115,7 +116,8 @@ def update_owner_barber(
     
     # Update barber fields
     for key, value in barber_data.items():
-        setattr(barber_to_update, key, value)
+        if value is not None:
+            setattr(barber_to_update, key, value)
 
     db.commit()
     db.refresh(barber_to_update)
@@ -146,6 +148,7 @@ def delete_self_barber(db: Session, user_id: int, barber_id: int, shop_id: int):
             booking.status = "barber_left"
     
     db.commit()
+    return {"message": "Barber deleted successfully"}
 
 def delete_owner_barber(db: Session, user_id: int, barber_id: int, shop_id: int):
     # Verify ownership
@@ -172,3 +175,4 @@ def delete_owner_barber(db: Session, user_id: int, barber_id: int, shop_id: int)
             booking.status = "barber_left"
     
     db.commit()
+    return {"message": "Barber deleted successfully"}

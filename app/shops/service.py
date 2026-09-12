@@ -83,7 +83,8 @@ def update_shop(db: Session, shop_id: int, user_id, shop_data: dict):
     _verify_shop_ownership(db, user_id, shop_id)
     
     for key, value in shop_data.items():
-        setattr(shop, key, value)
+        if value is not None:
+            setattr(shop, key, value)
     
     db.commit()
     db.refresh(shop)
@@ -107,3 +108,4 @@ def delete_shop(db: Session, user_id: int, shop_id: int):
         if booking.status == "confirmed":
             booking.status = "shop_closed"
     db.commit()
+    return {"message": "Shop deleted successfully"}

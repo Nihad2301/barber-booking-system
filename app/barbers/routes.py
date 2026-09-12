@@ -18,8 +18,9 @@ from app.database import get_db
 
 router = APIRouter(prefix="/barbers", tags=["barbers"])
 
-@router.post("/", response_model=DataResponse[BarberResponse])
+@router.post("/{shop_id}", response_model=DataResponse[BarberResponse])
 def add_barber(
+    shop_id: int,
     barber: BarberRegister, 
     db: Session = Depends(get_db), 
     verified_barber_owner: dict = Depends(require_verified_email)
@@ -28,7 +29,7 @@ def add_barber(
     new_barber = register_barber(
         db=db, 
         barber_owner_id=barber_owner_id,
-        shop_id=barber.shop_id, 
+        shop_id=shop_id, 
         username=barber.username, 
         password=barber.password, 
         email=barber.email, 
@@ -75,12 +76,12 @@ def owner_update_barber(
 @router.delete("/{shop_id}/{barber_id}", response_model=MessageResponse)
 def self_delete_barber(shop_id: int, barber_id: int, db: Session = Depends(get_db), verified_user: dict = Depends(require_verified_email)):
     user_id = verified_user["user_id"]
-    delete_self_barber(db, user_id, barber_id, shop_id)
-    return MessageResponse(message="Barber deleted successfully")
+    result = delete_self_barber(db, user_id, barber_id, shop_id)
+    return MessageResponse(**result)
 
 @router.delete("/{shop_id}/{barber_id}/owner", response_model=MessageResponse)
 def owner_delete_barber(shop_id: int, barber_id: int, db: Session = Depends(get_db), verified_user: dict = Depends(require_verified_email)):
     user_id = verified_user["user_id"]
-    delete_owner_barber(db, user_id, barber_id, shop_id)
-    return MessageResponse(message="Barber deleted successfully")
+    result = delete_owner_barber(db, user_id, barber_id, shop_id)
+    return MessageResponse(**result)
     
