@@ -1,6 +1,9 @@
 # Barber Pydantic schemas
 from pydantic import BaseModel, EmailStr, Field, field_validator
+from typing import Optional
 import re
+
+from pydantic.functional_validators import model_validator
 
 class BarberRegister(BaseModel):
     shop_id: int
@@ -43,3 +46,44 @@ class BarberResponse(BaseModel):
 
     class Config:
         from_attributes = True        
+
+class BarberSelfUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    slot_duration: Optional[int] = Field(None, gt=0)
+
+    @field_validator('name', 'slot_duration')
+    @classmethod
+    def validate_fields(cls, v):
+        if v is not None and not v.strip():
+            raise ValueError("Field cannot be empty if provided")
+        return v.strip() if v else v
+
+    @model_validator(mode='after')
+    def check_at_least_one_field(self):
+        if all([self.name is None, self.slot_duration is None]):
+            raise ValueError("At least one field must be provided")
+        return self
+
+class BarberOwnerUpdate(BaseModel):
+    is_active: Optional[bool] = Field(None)
+    slot_duration: Optional[int] = Field(None, gt=0)
+    is_owner: Optional[bool] = Field(None)
+    
+    @field_validator('is_active', 'slot_duration', 'is_owner')
+    @classmethod
+    def validate_fields(cls, v):
+        if v is not None and not v.strip():
+            raise ValueError("Field cannot be empty if provided")
+        return v.strip() if v else v
+
+    @model_validator(mode='after')
+    def check_at_least_one_field(self):
+        if all(
+            [
+                self.is_active is None,
+                self.slot_duration is None,
+                self.is_owner is None,
+            ]
+        ):
+            raise ValueError("At least one field must be provided")
+        return self

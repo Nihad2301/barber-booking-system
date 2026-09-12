@@ -33,6 +33,12 @@ class ShopUpdateRequest(BaseModel):
 
     @model_validator(mode='after')
     def check_at_least_one_field(self):
-        if not any([self.name, self.location, self.accepting_new_barbers is not None]):
+        if all(
+            [
+                self.name is None,
+                self.location is None,
+                self.accepting_new_barbers is None,
+            ]
+        ):
             raise ValueError("At least one field must be provided")
         return self
