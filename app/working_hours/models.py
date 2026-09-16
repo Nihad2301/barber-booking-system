@@ -10,7 +10,8 @@ class WorkingHours(Base):
     day_of_week = Column(String, nullable=False)  # "Monday", "Tuesday", etc.
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=False)
-    lunch_break = Column(Time, nullable=True)  # Optional lunch break time
+    lunch_break_start = Column(Time, nullable=True)  # Optional lunch break start
+    lunch_break_end = Column(Time, nullable=True)  # Optional lunch break end
     
     # Relationships
     barber = relationship("Barber", back_populates="working_hours")
