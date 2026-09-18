@@ -10,7 +10,7 @@ class UserType(str, Enum):
     CLIENT = "client"
     BARBER = "barber"
 
-class UserBuild(BaseModel):
+class RegisterRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     email: EmailStr  # Proper email validation
     password: str = Field(..., min_length=8, max_length=128)

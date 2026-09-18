@@ -30,7 +30,10 @@ def _get_services(db: Session, shop_id: int):
     if not shop:
         raise NotFoundError("Shop not found")
     
-    services = db.query(Service).filter(Service.shop_id == shop_id).all()
+    services = db.query(Service).filter(
+        Service.shop_id == shop_id,
+        Service.is_active == True
+    ).all()
     return [_service_to_response(service) for service in services]
 
 def _get_service(db: Session, shop_id: int, service_id: int):
@@ -38,7 +41,11 @@ def _get_service(db: Session, shop_id: int, service_id: int):
     if not shop:
         raise NotFoundError("Shop not found")
     
-    service = db.query(Service).filter(Service.id == service_id, Service.shop_id == shop_id).first()
+    service = db.query(Service).filter(
+        Service.id == service_id,
+        Service.shop_id == shop_id,
+        Service.is_active == True
+    ).first()
     if not service:
         raise NotFoundError("Service not found")
     
@@ -50,7 +57,11 @@ def _update_service(db: Session, user_id: int, shop_id: int, service_id: int, se
         raise NotFoundError("Shop not found")
     _verify_ownership(user_id, shop_id, db)
     
-    service = db.query(Service).filter(Service.id == service_id, Service.shop_id == shop_id).first()
+    service = db.query(Service).filter(
+        Service.id == service_id,
+        Service.shop_id == shop_id,
+        Service.is_active == True
+    ).first()
     if not service:
         raise NotFoundError("Service not found")
     
@@ -68,7 +79,11 @@ def _delete_service(db: Session, user_id: int, shop_id: int, service_id: int):
         raise NotFoundError("Shop not found")
     _verify_ownership(user_id, shop_id, db)
     
-    service = db.query(Service).filter(Service.id == service_id, Service.shop_id == shop_id).first()
+    service = db.query(Service).filter(
+        Service.id == service_id,
+        Service.shop_id == shop_id,
+        Service.is_active == True
+    ).first()
     if not service:
         raise NotFoundError("Service not found")
     

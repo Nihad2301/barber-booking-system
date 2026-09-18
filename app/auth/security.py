@@ -2,7 +2,7 @@
 from passlib.context import CryptContext
 from jose import JWTError, jwt, ExpiredSignatureError
 from datetime import datetime, timedelta
-from .config import settings
+from app.config import settings
 from .exceptions import InvalidTokenError, ExpiredTokenError
 
 # Password hashing

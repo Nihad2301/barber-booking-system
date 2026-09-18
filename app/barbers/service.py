@@ -6,16 +6,12 @@ from app.auth.service import _build_user
 from app.auth.exceptions import NotFoundError, ForbiddenError
 
 def _verify_ownership(barber_owner_id: int, shop_id: int, db: Session):
-    barber_owner = db.query(Barber).options(
-        Barber.shop
-    ).filter(
-        Barber.user_id == barber_owner_id, 
-        Barber.shop_id == shop_id, 
+    barber_owner = db.query(Barber).filter(
+        Barber.user_id == barber_owner_id,
+        Barber.shop_id == shop_id,
         Barber.is_owner == True
     ).first()
 
-    if not barber_owner.shop:
-        raise NotFoundError("Shop not found")
     if not barber_owner:
         raise ForbiddenError("You are not the owner of this shop")
     return barber_owner
@@ -39,6 +35,7 @@ def register_barber(
     slot_duration: int = 30
 ):
     try:
+        print("DEBUG: Starting register_barber")
         barber_owner = _verify_ownership(barber_owner_id, shop_id, db)
         # Create user
         user = _build_user(db, username, password, email, "barber")       
@@ -59,7 +56,7 @@ def register_barber(
         raise e
 
 def show_barbers(db: Session, shop_id: int):
-    shop = db.query(Shop).options(Shop.barbers).filter(Shop.id == shop_id).first()
+    shop = db.query(Shop).options(joinedload(Shop.barbers)).filter(Shop.id == shop_id).first()
     if not shop:
         raise NotFoundError("Shop not found")
     return [_barber_to_response(barber) for barber in shop.barbers]

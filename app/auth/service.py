@@ -42,7 +42,7 @@ def login_user(db: Session, username: str, password: str):
     password_verified = verify_password(password, user.hashed_password)
     if not password_verified:
         raise InvalidCredentialsError("Invalid credential(s)")
-    token = generate_token(data={"user_id": user.id, "is_verified": user.is_verified})
+    token = generate_token(data={"user_id": user.id})
     return LoginResponse(
         access_token=token, 
         token_type="bearer", 

@@ -7,6 +7,12 @@ class ServiceRequest(BaseModel):
     price: int
     is_active: bool = True
 
+    @field_validator('price')
+    def check_price_positive(cls, v):
+        if v <= 0:
+            raise ValueError("Price must be positive")
+        return v
+
 class ServiceResponse(BaseModel):
     id: int
     name: str

@@ -21,9 +21,8 @@ def get_shops(db: Session = Depends(get_db)):
     return DataResponse(message="Shops retrieved successfully", data=shops)
 
 @router.post("/", response_model=DataResponse[ShopResponse])
-def register_shop(shop: ShopRequest, db: Session = Depends(get_db), verified_user: dict = Depends(require_verified_email)):
-    user_id = verified_user.get("user_id")
-    shop = create_shop(db, shop.model_dump(), user_id)
+def register_shop(shop: ShopRequest, db: Session = Depends(get_db)):
+    shop = create_shop(db, shop.model_dump())
     return DataResponse(message="Shop created successfully", data=shop)
 
 @router.get("/{shop_id}", response_model=DataResponse[ShopResponse])
