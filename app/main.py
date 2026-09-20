@@ -7,6 +7,8 @@ from app.shops.routes import router as shops_router
 from app.services.routes import router as services_router
 from app.barbers.barber_services import router as barber_services_router
 from app.working_hours.routes import router as working_hours_router
+from app.bookings.routes import router as bookings_router
+from app.slots.routes import router as slots_router
 from app.auth.exceptions import AppException
 from app.exception_handlers import custom_exception_handler, validation_exception_handler
 from app.database import get_db
@@ -24,6 +26,8 @@ app.include_router(shops_router)
 app.include_router(services_router)
 app.include_router(barber_services_router)
 app.include_router(working_hours_router)
+app.include_router(bookings_router)
+app.include_router(slots_router)
 
 # Setup APScheduler for nightly slot generation
 scheduler = BackgroundScheduler()
