@@ -20,6 +20,5 @@ class BookingResponse(BaseModel):
         from_attributes = True
 
 class CancelBookingResponse(BaseModel):
-    message: str
     booking_status: str
     slot_status: Optional[str] = None

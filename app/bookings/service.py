@@ -133,7 +133,6 @@ def cancel_booking(
             # Get current status for response
             db.refresh(booking)
             return CancelBookingResponse(
-                message="Booking was already cancelled or completed",
                 booking_status=booking.status
             )
         
@@ -150,7 +149,6 @@ def cancel_booking(
         db.commit()
         
         return CancelBookingResponse(
-            message="Booking cancelled successfully",
             booking_status=new_status,
             slot_status=slot_status
         )
