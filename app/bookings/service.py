@@ -31,6 +31,28 @@ def create_booking(
         
         # Check rowcount - if 0, slot was already claimed
         if result.rowcount == 0:
+            # Check if slot is claimed by the same client (idempotent case)
+            existing_booking = db.query(Booking).filter(
+                Booking.slot_id == slot_id,
+                Booking.status == 'confirmed'
+            ).first()
+            
+            if existing_booking:
+                # Check if this booking belongs to the requesting client
+                client = db.query(Client).filter(Client.user_id == user_id).first()
+                if client and existing_booking.client_id == client.id:
+                    # Same client double-tap - return existing booking (idempotent)
+                    return BookingResponse(
+                        id=existing_booking.id,
+                        slot_id=existing_booking.slot_id,
+                        client_id=existing_booking.client_id,
+                        barber_id=existing_booking.barber_id,
+                        shop_id=existing_booking.shop_id,
+                        service_id=existing_booking.service_id,
+                        status=existing_booking.status
+                    )
+            
+            # Different client claimed it - raise error
             db.rollback()
             raise AlreadyClaimedError("Slot already claimed")
         
