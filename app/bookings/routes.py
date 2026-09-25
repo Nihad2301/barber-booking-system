@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, require_verified_email
 from app.bookings.service import create_booking, cancel_booking, list_bookings
 from app.bookings.schemas import CreateBookingRequest, BookingResponse, CancelBookingResponse, BookingListResponse
 from app.auth.schemas import DataResponse
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/bookings", tags=["Bookings"])
 @router.post("", response_model=DataResponse[BookingResponse])
 def create_booking_endpoint(
     request: CreateBookingRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_verified_email),
     db: Session = Depends(get_db)
 ):
     """
@@ -35,7 +35,7 @@ def create_booking_endpoint(
 @router.patch("/{booking_id}/cancel", response_model=DataResponse[CancelBookingResponse])
 def cancel_booking_endpoint(
     booking_id: int,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_verified_email),
     db: Session = Depends(get_db)
 ):
     """
