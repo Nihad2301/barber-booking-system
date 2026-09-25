@@ -1,7 +1,7 @@
 # Booking Pydantic schemas
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 class CreateBookingRequest(BaseModel):
     slot_id: int = Field(..., gt=0)
@@ -22,3 +22,6 @@ class BookingResponse(BaseModel):
 class CancelBookingResponse(BaseModel):
     booking_status: str
     slot_status: Optional[str] = None
+
+class BookingListResponse(BaseModel):
+    bookings: List[BookingResponse]

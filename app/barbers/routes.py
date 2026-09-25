@@ -74,13 +74,23 @@ def owner_update_barber(
     return DataResponse(data=barber, message="Barber updated successfully")    
 
 @router.delete("/{shop_id}/{barber_id}", response_model=MessageResponse)
-def self_delete_barber(shop_id: int, barber_id: int, db: Session = Depends(get_db), verified_user: dict = Depends(require_verified_email)):
+def self_delete_barber(
+    shop_id: int, 
+    barber_id: int, 
+    db: Session = Depends(get_db), 
+    verified_user: dict = Depends(require_verified_email)
+):
     user_id = verified_user["user_id"]
     result = delete_self_barber(db, user_id, barber_id, shop_id)
     return MessageResponse(**result)
 
 @router.delete("/{shop_id}/{barber_id}/owner", response_model=MessageResponse)
-def owner_delete_barber(shop_id: int, barber_id: int, db: Session = Depends(get_db), verified_user: dict = Depends(require_verified_email)):
+def owner_delete_barber(
+    shop_id: int, 
+    barber_id: int, 
+    db: Session = Depends(get_db), 
+    verified_user: dict = Depends(require_verified_email)
+):
     user_id = verified_user["user_id"]
     result = delete_owner_barber(db, user_id, barber_id, shop_id)
     return MessageResponse(**result)

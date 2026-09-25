@@ -1,8 +1,8 @@
 # Booking business logic
 from sqlalchemy.orm import Session
-from sqlalchemy import update
+from sqlalchemy import update, or_
 from app.bookings.models import Booking
-from app.bookings.schemas import CreateBookingRequest, BookingResponse, CancelBookingResponse
+from app.bookings.schemas import CreateBookingRequest, BookingResponse, CancelBookingResponse, BookingListResponse
 from app.slots.models import Slot
 from app.clients.models import Client
 from app.barbers.models import Barber
@@ -180,3 +180,76 @@ def cancel_booking(
     except Exception as e:
         db.rollback()
         raise e
+
+def list_bookings(
+    db: Session,
+    user_id: int,
+    user_type: str,
+    include_cancelled: bool = False
+) -> BookingListResponse:
+    """
+    List bookings with role-based branching behavior.
+    
+    Client branch:
+    - Returns only bookings belonging to this client (client_id == current_user.id)
+    - ALWAYS excludes cancelled bookings (fixed behavior, not configurable)
+    
+    Barber branch:
+    - Regular barber sees only bookings where barber_id == current_user.id
+    - Owner-flagged barber sees ALL bookings across their shop (shop_id == current_user.shop_id)
+    - Accepts optional include_cancelled parameter (default False)
+    """
+    # Build base query
+    query = db.query(Booking)
+    
+    # Role-based filtering
+    if user_type == 'client':
+        # Client branch: only their own bookings, ALWAYS exclude cancelled
+        client = db.query(Client).filter(Client.user_id == user_id).first()
+        if not client:
+            raise NotFoundError("Client profile not found")
+        
+        query = query.filter(
+            Booking.client_id == client.id,
+            ~Booking.status.in_(['cancelled_by_client', 'cancelled_by_barber'])
+        )
+        
+    elif user_type == 'barber':
+        # Barber branch: scope by barber or shop-wide if owner
+        barber = db.query(Barber).filter(Barber.user_id == user_id).first()
+        if not barber:
+            raise NotFoundError("Barber profile not found")
+        
+        if barber.is_owner:
+            # Owner sees all bookings across their shop
+            query = query.filter(Booking.shop_id == barber.shop_id)
+        else:
+            # Regular barber sees only their own bookings
+            query = query.filter(Booking.barber_id == barber.id)
+        
+        # Apply cancelled filter based on parameter (only for barber branch)
+        if not include_cancelled:
+            query = query.filter(
+                ~Booking.status.in_(['cancelled_by_client', 'cancelled_by_barber'])
+            )
+    else:
+        raise ForbiddenError("Invalid user type")
+    
+    # Execute query
+    bookings = query.all()
+    
+    # Convert to response models
+    booking_responses = [
+        BookingResponse(
+            id=booking.id,
+            slot_id=booking.slot_id,
+            client_id=booking.client_id,
+            barber_id=booking.barber_id,
+            shop_id=booking.shop_id,
+            service_id=booking.service_id,
+            status=booking.status
+        )
+        for booking in bookings
+    ]
+    
+    return BookingListResponse(bookings=booking_responses)

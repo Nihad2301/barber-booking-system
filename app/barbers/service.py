@@ -35,7 +35,6 @@ def register_barber(
     slot_duration: int = 30
 ):
     try:
-        print("DEBUG: Starting register_barber")
         barber_owner = _verify_ownership(barber_owner_id, shop_id, db)
         # Create user
         user = _build_user(db, username, password, email, "barber")       

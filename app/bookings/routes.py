@@ -1,10 +1,10 @@
 # Booking endpoints
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.auth.dependencies import get_current_user
-from app.bookings.service import create_booking, cancel_booking
-from app.bookings.schemas import CreateBookingRequest, BookingResponse, CancelBookingResponse
+from app.bookings.service import create_booking, cancel_booking, list_bookings
+from app.bookings.schemas import CreateBookingRequest, BookingResponse, CancelBookingResponse, BookingListResponse
 from app.auth.schemas import DataResponse
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
@@ -53,3 +53,37 @@ def cancel_booking_endpoint(
     )
     
     return DataResponse(data=result, message="Booking cancelled successfully")
+
+@router.get("", response_model=DataResponse[BookingListResponse])
+def list_bookings_endpoint(
+    include_cancelled: bool = Query(False, description="Include cancelled bookings (barber only)"),
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    List bookings with role-based branching behavior.
+    
+    Client branch:
+    - Returns only bookings belonging to this client
+    - ALWAYS excludes cancelled bookings (fixed behavior, not configurable)
+    
+    Barber branch:
+    - Regular barber sees only their own bookings
+    - Owner-flagged barber sees ALL bookings across their shop
+    - Accepts optional include_cancelled parameter (default False)
+    """
+    user_id = current_user.get("user_id")
+    user_type = current_user.get("user_type")
+    
+    # For client branch, ignore include_cancelled parameter entirely
+    if user_type == 'client':
+        include_cancelled = False
+    
+    bookings = list_bookings(
+        db=db,
+        user_id=user_id,
+        user_type=user_type,
+        include_cancelled=include_cancelled
+    )
+    
+    return DataResponse(data=bookings, message="Bookings retrieved successfully")
