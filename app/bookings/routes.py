@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.auth.dependencies import get_current_user, require_verified_email
+from app.auth.dependencies import get_current_user, require_verified_email, require_active_client
 from app.bookings.service import create_booking, cancel_booking, list_bookings
 from app.bookings.schemas import CreateBookingRequest, BookingResponse, CancelBookingResponse, BookingListResponse
 from app.auth.schemas import DataResponse
@@ -21,6 +21,10 @@ def create_booking_endpoint(
     """
     user_id = current_user.get("user_id")
     user_type = current_user.get("user_type")
+    
+    # Apply require_active_client for client users
+    if user_type == "client":
+        current_user = require_active_client(current_user, db)
     
     booking = create_booking(
         db=db,
@@ -44,6 +48,10 @@ def cancel_booking_endpoint(
     """
     user_id = current_user.get("user_id")
     user_type = current_user.get("user_type")
+    
+    # Apply require_active_client for client users
+    if user_type == "client":
+        current_user = require_active_client(current_user, db)
     
     result = cancel_booking(
         db=db,
@@ -74,6 +82,10 @@ def list_bookings_endpoint(
     """
     user_id = current_user.get("user_id")
     user_type = current_user.get("user_type")
+    
+    # Apply require_active_client for client users
+    if user_type == "client":
+        current_user = require_active_client(current_user, db)
     
     # For client branch, ignore include_cancelled parameter entirely
     if user_type == 'client':

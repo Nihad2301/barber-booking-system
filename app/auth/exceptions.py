@@ -56,3 +56,8 @@ class NotFoundError(AppException):
 class AlreadyClaimedError(AppException):
     status_code = 409
     default_message = "Slot already claimed"
+
+
+class InactiveAccountError(AppException):
+    status_code = 403
+    default_message = "Account is inactive"
