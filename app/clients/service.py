@@ -54,7 +54,7 @@ def get_client(db: Session, client_id: int, requesting_user_id: int, requesting_
     if requesting_user_type == "client":
         # Client can view their own profile
         requesting_client = db.query(Client).filter(Client.user_id == requesting_user_id).first()
-        if not requesting_client or requesting_client.id != client_id:
+        if requesting_client.id != client_id:
             raise ForbiddenError("You can only view your own profile")
     elif requesting_user_type == "barber":
         # Barber can view client profile only if they have a confirmed/completed booking together

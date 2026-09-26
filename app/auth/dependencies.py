@@ -2,7 +2,7 @@
 from fastapi import Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.auth.security import verify_token
-from app.auth.exceptions import EmailNotVerifiedError, InactiveAccountError
+from app.auth.exceptions import EmailNotVerifiedError, InactiveAccountError, ForbiddenError
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.auth.models import User
@@ -38,7 +38,7 @@ def require_active_client(
     user_type = user.get("user_type")
     
     if user_type != "client":
-        raise InactiveAccountError("Not a client account")
+        raise ForbiddenError("Not a client account")
     
     # Check database for current is_active status
     client = db.query(Client).filter(Client.user_id == user_id).first()

@@ -46,7 +46,7 @@ def read_client(
 def update_client_endpoint(
     client_id: int,
     client_data: ClientUpdate,
-    user: dict = Depends(get_current_user),
+    verified_user: dict = Depends(require_verified_email),
     db: Session = Depends(get_db)
 ):
     """
@@ -54,14 +54,13 @@ def update_client_endpoint(
     - Requires require_active_client AND require_verified_email
     - is_active field is NOT allowed (has dedicated delete flow)
     """
-    user = require_active_client(user, db)
-    user = require_verified_email(user, db)
-    return update_client(db, client_id, user.get("user_id"), client_data.model_dump(exclude_unset=True))
+    verified_user = require_active_client(verified_user, db)
+    return update_client(db, client_id, verified_user.get("user_id"), client_data.model_dump(exclude_unset=True))
 
 @router.delete("/{client_id}")
 def delete_client_endpoint(
     client_id: int,
-    user: dict = Depends(get_current_user),
+    verified_user: dict = Depends(require_verified_email),
     db: Session = Depends(get_db)
 ):
     """
@@ -70,6 +69,5 @@ def delete_client_endpoint(
     - Cancels all future confirmed bookings using existing cancel_booking logic
     - Past/completed bookings remain as history
     """
-    user = require_active_client(user, db)
-    user = require_verified_email(user, db)
-    return delete_client(db, client_id, user.get("user_id"))
+    verified_user = require_active_client(verified_user, db)
+    return delete_client(db, client_id, verified_user.get("user_id"))
