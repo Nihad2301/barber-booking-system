@@ -2,7 +2,7 @@
 from .models import Client
 from app.auth.service import _build_user
 from app.auth.exceptions import NotFoundError, ForbiddenError
-from app.bookings.service import cancel_booking
+from app.bookings.service import cancel_booking, release_slot
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from datetime import datetime
@@ -82,23 +82,27 @@ def get_client(db: Session, client_id: int, requesting_user_id: int, requesting_
 
 def update_client(db: Session, client_id: int, user_id: int, client_data: dict):
     """Update client profile - client-only, requires verified email (enforced at route level)"""
-    client = db.query(Client).filter(
-        Client.id == client_id,
-        Client.user_id == user_id
-    ).first()
-    if not client:
-        raise ForbiddenError("You can only update your own profile")
-    
-    # Update fields (is_active is NOT allowed here - has dedicated delete flow)
-    for key, value in client_data.items():
-        if key == "is_active":
-            continue  # Skip is_active - not allowed via update endpoint
-        if value is not None:
-            setattr(client, key, value)
-    
-    db.commit()
-    db.refresh(client)
-    return _client_to_response(client)
+    try:
+        client = db.query(Client).filter(
+            Client.id == client_id,
+            Client.user_id == user_id
+        ).first()
+        if not client:
+            raise ForbiddenError("You can only update your own profile")
+
+        # Update fields (is_active is NOT allowed here - has dedicated delete flow)
+        for key, value in client_data.items():
+            if key == "is_active":
+                continue  # Skip is_active - not allowed via update endpoint
+            if value is not None:
+                setattr(client, key, value)
+
+        db.commit()
+        db.refresh(client)
+        return _client_to_response(client)
+    except Exception as e:
+        db.rollback()
+        raise e
 
 def delete_client(db: Session, client_id: int, user_id: int):
     """
@@ -128,10 +132,10 @@ def delete_client(db: Session, client_id: int, user_id: int):
             )
         ).all()
         
-        # Cancel each future booking using the existing cancel_booking function
-        # This reuses the already-tested atomic cancellation logic
+        # Cancel each future booking and release slot using shared helper
         for booking in future_bookings:
-            cancel_booking(db, booking.id, user_id, "client")
+            booking.status = 'cancelled_by_client'
+            release_slot(booking.slot_id, 'open', db)
         
         db.commit()
         return {"message": "Client account deactivated successfully"}

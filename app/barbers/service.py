@@ -2,8 +2,11 @@
 from .models import Barber
 from app.shops.models import Shop
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import and_
 from app.auth.service import _build_user
 from app.auth.exceptions import NotFoundError, ForbiddenError
+from app.bookings.service import cancel_booking
+from app.bookings.models import Booking
 
 def _verify_ownership(barber_owner_id: int, shop_id: int, db: Session):
     barber_owner = db.query(Barber).filter(
@@ -58,117 +61,161 @@ def show_barbers(db: Session, shop_id: int):
     shop = db.query(Shop).options(joinedload(Shop.barbers)).filter(Shop.id == shop_id).first()
     if not shop:
         raise NotFoundError("Shop not found")
-    return [_barber_to_response(barber) for barber in shop.barbers]
+    return [_barber_to_response(barber) for barber in shop.barbers if barber.is_active]
 
 def show_barber(db: Session, barber_id: int, shop_id: int):
     shop = db.query(Shop).filter(Shop.id == shop_id).first()
     if not shop:
         raise NotFoundError("Shop not found")
-    
-    barber = db.query(Barber).filter(Barber.id == barber_id, Barber.shop_id == shop_id).first()
+
+    barber = db.query(Barber).filter(
+        Barber.id == barber_id,
+        Barber.shop_id == shop_id,
+        Barber.is_active == True
+    ).first()
     if not barber:
         raise NotFoundError("Barber not found")
-    
+
     return _barber_to_response(barber)
 
 def update_self_barber(db: Session, user_id: int, barber_id: int, shop_id: int, self_barber_data: dict):
-    shop = db.query(Shop).filter(Shop.id == shop_id).first()
-    if not shop:
-        raise NotFoundError("Shop not found")
-    
-    barber = db.query(Barber).filter(
-        Barber.id == barber_id, 
-        Barber.shop_id == shop_id, 
-        Barber.user_id == user_id
-        ).first()
-    if not barber:
-        raise ForbiddenError("You can only update your own profile")
-    
-    for key, value in self_barber_data.items():
-        if value is not None:
-            setattr(barber, key, value)
+    try:
+        shop = db.query(Shop).filter(Shop.id == shop_id).first()
+        if not shop:
+            raise NotFoundError("Shop not found")
 
-    db.commit()
-    db.refresh(barber)
-    return _barber_to_response(barber)
+        barber = db.query(Barber).filter(
+            Barber.id == barber_id,
+            Barber.shop_id == shop_id,
+            Barber.user_id == user_id
+            ).first()
+        if not barber:
+            raise ForbiddenError("You can only update your own profile")
+
+        for key, value in self_barber_data.items():
+            if value is not None:
+                setattr(barber, key, value)
+
+        db.commit()
+        db.refresh(barber)
+        return _barber_to_response(barber)
+    except Exception as e:
+        db.rollback()
+        raise e
 
 def update_owner_barber(
-    db: Session, 
-    user_id: int, 
-    barber_id: int, 
-    shop_id: int, 
+    db: Session,
+    user_id: int,
+    barber_id: int,
+    shop_id: int,
     barber_data: dict
-):  
-    # Verify ownership
-    _verify_ownership(user_id, shop_id, db)
+):
+    try:
+        # Verify ownership
+        _verify_ownership(user_id, shop_id, db)
 
-    # Find barber to update
-    barber_to_update = db.query(Barber).filter(
-        Barber.id == barber_id, 
-        Barber.shop_id == shop_id
-        ).first()
-    if not barber_to_update:
-        raise NotFoundError("Barber not found")
-    
-    # Update barber fields
-    for key, value in barber_data.items():
-        if value is not None:
-            setattr(barber_to_update, key, value)
+        # Find barber to update
+        barber_to_update = db.query(Barber).filter(
+            Barber.id == barber_id,
+            Barber.shop_id == shop_id
+            ).first()
+        if not barber_to_update:
+            raise NotFoundError("Barber not found")
 
-    db.commit()
-    db.refresh(barber_to_update)
-    return _barber_to_response(barber_to_update)
+        # Update barber fields
+        for key, value in barber_data.items():
+            if value is not None:
+                setattr(barber_to_update, key, value)
+
+        db.commit()
+        db.refresh(barber_to_update)
+        return _barber_to_response(barber_to_update)
+    except Exception as e:
+        db.rollback()
+        raise e
 
 def delete_self_barber(db: Session, user_id: int, barber_id: int, shop_id: int):
+    """
+    Deactivate barber account - barber-only self-service
+    - If barber is owner: triggers shop closure cascade (all barbers deactivated, slots='shop_closed')
+    - If barber is regular: deactivates only this barber, cancels future bookings with 'cancelled_by_barber', slots='barber_left'
+    - Past/completed bookings remain as history
+    """
     shop = db.query(Shop).filter(Shop.id == shop_id).first()
     if not shop:
         raise NotFoundError("Shop not found")
-    
-    barber = db.query(Barber).options(
-        joinedload(Barber.slots),
-        joinedload(Barber.bookings)
-    ).filter(
-        Barber.id == barber_id, 
-        Barber.shop_id == shop_id, 
+
+    barber = db.query(Barber).filter(
+        Barber.id == barber_id,
+        Barber.shop_id == shop_id,
         Barber.user_id == user_id
-        ).first()
+    ).first()
     if not barber:
         raise ForbiddenError("You can only delete your own profile")
-    
-    barber.is_active = False
-    for slot in barber.slots:
-        if slot.status in ["open", "claimed"]:
-            slot.status = "barber_left"
-    for booking in barber.bookings:
-        if booking.status == "confirmed":
-            booking.status = "barber_left"
-    
-    db.commit()
-    return {"message": "Barber deleted successfully"}
+
+    # If barber is owner, trigger shop closure cascade
+    if barber.is_owner:
+        from app.shops.service import delete_shop
+        return delete_shop(db, user_id, shop_id)
+
+    # Regular barber deactivation
+    try:
+        barber.is_active = False
+
+        # Find all confirmed bookings for this barber
+        future_bookings = db.query(Booking).filter(
+            and_(
+                Booking.barber_id == barber.id,
+                Booking.status == 'confirmed'
+            )
+        ).all()
+
+        # Cancel each booking and release slot with 'barber_left' status
+        for booking in future_bookings:
+            cancel_booking(db, booking.id, user_id, 'barber', target_slot_status='barber_left')
+
+        db.commit()
+        return {"message": "Barber account deactivated successfully"}
+    except Exception as e:
+        db.rollback()
+        raise e
 
 def delete_owner_barber(db: Session, user_id: int, barber_id: int, shop_id: int):
+    """
+    Deactivate barber - owner-only
+    - Deactivates the specified barber
+    - Cancels future confirmed bookings with 'cancelled_by_barber'
+    - Releases slots with 'barber_left' status
+    - Does NOT trigger shop closure (use delete_shop for that)
+    """
     # Verify ownership
     _verify_ownership(user_id, shop_id, db)
-    
+
     # Find barber to delete
-    barber_to_delete = db.query(Barber).options(
-        joinedload(Barber.slots),
-        joinedload(Barber.bookings)
-    ).filter(
-        Barber.id == barber_id, 
+    barber_to_delete = db.query(Barber).filter(
+        Barber.id == barber_id,
         Barber.shop_id == shop_id
-        ).first()
+    ).first()
     if not barber_to_delete:
         raise NotFoundError("Barber not found")
-    
-    # Delete barber
-    barber_to_delete.is_active = False
-    for slot in barber_to_delete.slots:
-        if slot.status in ["open", "claimed"]:
-            slot.status = "barber_left"
-    for booking in barber_to_delete.bookings:
-        if booking.status == "confirmed":
-            booking.status = "barber_left"
-    
-    db.commit()
-    return {"message": "Barber deleted successfully"}
+
+    try:
+        barber_to_delete.is_active = False
+
+        # Find all confirmed bookings for this barber
+        future_bookings = db.query(Booking).filter(
+            and_(
+                Booking.barber_id == barber_to_delete.id,
+                Booking.status == 'confirmed'
+            )
+        ).all()
+
+        # Cancel each booking and release slot with 'barber_left' status
+        for booking in future_bookings:
+            cancel_booking(db, booking.id, user_id, 'barber', target_slot_status='barber_left')
+
+        db.commit()
+        return {"message": "Barber deactivated successfully"}
+    except Exception as e:
+        db.rollback()
+        raise e

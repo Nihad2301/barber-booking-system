@@ -10,6 +10,23 @@ from app.services.models import Service
 from app.auth.exceptions import AlreadyClaimedError, ForbiddenError, NotFoundError
 from app.auth.models import User
 
+def release_slot(slot_id: int, target_status: str, db: Session) -> str | None:
+    """
+    Release a slot to a target status.
+    Returns target_status if slot was successfully updated, or the actual current status if slot was already changed.
+    Returns None if slot doesn't exist.
+    """
+    result = db.execute(
+        update(Slot)
+        .where(Slot.id == slot_id, Slot.status == 'claimed')
+        .values(status=target_status)
+    )
+    if result.rowcount == 1:
+        return target_status
+    # Slot was already changed - return actual current status
+    slot = db.query(Slot).filter(Slot.id == slot_id).first()
+    return slot.status if slot else None
+
 def create_booking(
     db: Session,
     slot_id: int,
@@ -115,18 +132,23 @@ def cancel_booking(
     db: Session,
     booking_id: int,
     user_id: int,
-    user_type: str
+    user_type: str,
+    target_slot_status: str = 'open'
 ) -> CancelBookingResponse:
     """
     Cancel a booking with concurrency-safe atomic UPDATE pattern.
     Authorization is checked first, then atomic conditional UPDATE on booking,
     followed by atomic conditional UPDATE to release the slot.
+
+    Args:
+        target_slot_status: Status to set on the slot after cancellation (default: 'open')
+                            Use 'barber_left' or 'shop_closed' for deactivation scenarios.
     """
     # Get the booking first for authorization check
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:
         raise NotFoundError("Booking not found")
-    
+
     # Authorization check
     if user_type == 'client':
         client = db.query(Client).filter(Client.user_id == user_id).first()
@@ -138,10 +160,10 @@ def cancel_booking(
             raise ForbiddenError("You can only cancel your own bookings")
     else:
         raise ForbiddenError("Invalid user type")
-    
+
     # Determine new status based on role
     new_status = 'cancelled_by_client' if user_type == 'client' else 'cancelled_by_barber'
-    
+
     try:
         # Atomic conditional UPDATE on booking
         result = db.execute(
@@ -149,7 +171,7 @@ def cancel_booking(
             .where(Booking.id == booking_id, Booking.status == 'confirmed')
             .values(status=new_status)
         )
-        
+
         # If rowcount == 0, booking was already cancelled/completed - benign race
         if result.rowcount == 0:
             # Get current status for response
@@ -157,24 +179,16 @@ def cancel_booking(
             return CancelBookingResponse(
                 booking_status=booking.status
             )
-        
-        # Atomic conditional UPDATE to release the slot back to open
-        slot_result = db.execute(
-            update(Slot)
-            .where(Slot.id == booking.slot_id, Slot.status == 'claimed')
-            .values(status='open')
-        )
-        
-        # If slot rowcount == 0, slot was already changed for legitimate reason - benign
-        slot_status = 'open' if slot_result.rowcount == 1 else None
-        
+
+        # Release slot to target status using shared helper
+        slot_status = release_slot(booking.slot_id, target_slot_status, db)
+
         db.commit()
-        
         return CancelBookingResponse(
             booking_status=new_status,
             slot_status=slot_status
         )
-        
+
     except AlreadyClaimedError:
         raise
     except Exception as e:

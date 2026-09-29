@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.auth.dependencies import get_current_user, require_active_client, require_verified_email
+from app.auth.dependencies import get_current_user, require_active_client, require_verified_email, require_active_barber
 from app.clients.schemas import ClientRegister, ClientResponse, ClientUpdate
 from app.clients.service import register_client, get_client, update_client, delete_client
 
@@ -33,13 +33,17 @@ def read_client(
     - Client can always view their own profile
     - Barber can view client profile only if they have a confirmed/completed booking together
     - Requires require_active_client for clients (blocks deactivated accounts from viewing data)
+    - Requires require_active_barber for barbers (blocks deactivated barbers from viewing data)
     """
     user_type = user.get("user_type")
-    
+
     # Apply require_active_client only for client users
     if user_type == "client":
         user = require_active_client(user, db)
-    
+    # Apply require_active_barber for barber users
+    elif user_type == "barber":
+        user = require_active_barber(user, db)
+
     return get_client(db, client_id, user.get("user_id"), user_type)
 
 @router.put("/{client_id}", response_model=ClientResponse)

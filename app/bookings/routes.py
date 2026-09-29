@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.auth.dependencies import get_current_user, require_verified_email, require_active_client
+from app.auth.dependencies import get_current_user, require_verified_email, require_active_client, require_active_barber
 from app.bookings.service import create_booking, cancel_booking, list_bookings
 from app.bookings.schemas import CreateBookingRequest, BookingResponse, CancelBookingResponse, BookingListResponse
 from app.auth.schemas import DataResponse
@@ -21,11 +21,11 @@ def create_booking_endpoint(
     """
     user_id = current_user.get("user_id")
     user_type = current_user.get("user_type")
-    
+
     # Apply require_active_client for client users
     if user_type == "client":
         current_user = require_active_client(current_user, db)
-    
+
     booking = create_booking(
         db=db,
         slot_id=request.slot_id,
@@ -33,7 +33,7 @@ def create_booking_endpoint(
         user_id=user_id,
         user_type=user_type
     )
-    
+
     return DataResponse(data=booking, message="Booking created successfully")
 
 @router.patch("/{booking_id}/cancel", response_model=DataResponse[CancelBookingResponse])
@@ -48,18 +48,21 @@ def cancel_booking_endpoint(
     """
     user_id = current_user.get("user_id")
     user_type = current_user.get("user_type")
-    
+
     # Apply require_active_client for client users
     if user_type == "client":
         current_user = require_active_client(current_user, db)
-    
+    # Apply require_active_barber for barber users
+    elif user_type == "barber":
+        current_user = require_active_barber(current_user, db)
+
     result = cancel_booking(
         db=db,
         booking_id=booking_id,
         user_id=user_id,
         user_type=user_type
     )
-    
+
     return DataResponse(data=result, message="Booking cancelled successfully")
 
 @router.get("", response_model=DataResponse[BookingListResponse])
@@ -70,11 +73,11 @@ def list_bookings_endpoint(
 ):
     """
     List bookings with role-based branching behavior.
-    
+
     Client branch:
     - Returns only bookings belonging to this client
     - ALWAYS excludes cancelled bookings (fixed behavior, not configurable)
-    
+
     Barber branch:
     - Regular barber sees only their own bookings
     - Owner-flagged barber sees ALL bookings across their shop
@@ -82,20 +85,23 @@ def list_bookings_endpoint(
     """
     user_id = current_user.get("user_id")
     user_type = current_user.get("user_type")
-    
+
     # Apply require_active_client for client users
     if user_type == "client":
         current_user = require_active_client(current_user, db)
-    
+    # Apply require_active_barber for barber users
+    elif user_type == "barber":
+        current_user = require_active_barber(current_user, db)
+
     # For client branch, ignore include_cancelled parameter entirely
     if user_type == 'client':
         include_cancelled = False
-    
+
     bookings = list_bookings(
         db=db,
         user_id=user_id,
         user_type=user_type,
         include_cancelled=include_cancelled
     )
-    
+
     return DataResponse(data=bookings, message="Bookings retrieved successfully")

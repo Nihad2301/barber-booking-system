@@ -9,7 +9,7 @@ from app.services.models import Service
 from fastapi import APIRouter, Depends
 from app.auth.schemas import MessageResponse, DataResponse
 from app.database import get_db
-from app.auth.dependencies import require_verified_email
+from app.auth.dependencies import require_verified_email, require_active_barber
 
 router = APIRouter(prefix="/barber-services", tags=["Barber Services"])
 
@@ -48,7 +48,8 @@ def _get_barber_services(db: Session, shop_id: int, barber_id: int):
         joinedload(Barber.services)
     ).filter(
         Barber.id == barber_id,
-        Barber.shop_id == shop_id
+        Barber.shop_id == shop_id,
+        Barber.is_active == True
     ).first()
     if not barber:
         raise NotFoundError("Barber not found")
@@ -57,12 +58,13 @@ def _get_barber_services(db: Session, shop_id: int, barber_id: int):
 
 @router.post("/shops/{shop_id}/barbers/{barber_id}/services/{service_id}", response_model=MessageResponse)
 def add_barber_service(
-    shop_id: int, 
-    barber_id: int, 
-    service_id: int, 
-    db: Session = Depends(get_db), 
+    shop_id: int,
+    barber_id: int,
+    service_id: int,
+    db: Session = Depends(get_db),
     verified_user: dict = Depends(require_verified_email)
 ):
+    verified_user = require_active_barber(verified_user, db)
     user_id = verified_user.get("user_id")
     result = _add_barber_service(db, shop_id, user_id, barber_id, service_id)
     return MessageResponse(**result)

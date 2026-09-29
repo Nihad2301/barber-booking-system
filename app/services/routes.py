@@ -9,7 +9,7 @@ from app.services.service import (
     _update_service,
     _delete_service
 )
-from app.auth.dependencies import require_verified_email
+from app.auth.dependencies import require_verified_email, require_active_barber
 from app.auth.schemas import MessageResponse, DataResponse
 from .schemas import ServiceRequest, ServiceResponse, ServiceUpdateRequest
 
@@ -22,6 +22,7 @@ def add_service(
     current_user: dict = Depends(require_verified_email),
     db: Session = Depends(get_db)
 ):
+    current_user = require_active_barber(current_user, db)
     user_id = current_user["user_id"]
     service = _add_service(db, user_id, shop_id, service_data.model_dump())
     return DataResponse(data=service, message="Service created successfully")
@@ -51,6 +52,7 @@ def update_service(
     current_user: dict = Depends(require_verified_email),
     db: Session = Depends(get_db)
 ):
+    current_user = require_active_barber(current_user, db)
     user_id = current_user["user_id"]
     service = _update_service(db, user_id, shop_id, service_id, service_data.model_dump())
     return DataResponse(data=service, message="Service updated successfully")
@@ -62,6 +64,7 @@ def delete_service(
     current_user: dict = Depends(require_verified_email),
     db: Session = Depends(get_db)
 ):
+    current_user = require_active_barber(current_user, db)
     user_id = current_user["user_id"]
     result = _delete_service(db, user_id, shop_id, service_id)
     return MessageResponse(**result)

@@ -8,7 +8,7 @@ from app.working_hours.service import (
     update_working_hours,
     delete_working_hours
 )
-from app.auth.dependencies import require_verified_email
+from app.auth.dependencies import require_verified_email, require_active_barber
 from app.auth.schemas import MessageResponse, DataResponse
 from .schemas import WorkingHoursRequest, WorkingHoursUpdateRequest, WorkingHoursResponse
 
@@ -37,6 +37,7 @@ def create_working_hours(
     current_user: dict = Depends(require_verified_email),
     db: Session = Depends(get_db)
 ):
+    current_user = require_active_barber(current_user, db)
     user_id = current_user["user_id"]
     working_hours = add_working_hours(db, barber_id, user_id, working_hours_data.model_dump())
     # Trigger slot generation in background
@@ -57,6 +58,7 @@ def update_barber_working_hours(
     current_user: dict = Depends(require_verified_email),
     db: Session = Depends(get_db)
 ):
+    current_user = require_active_barber(current_user, db)
     user_id = current_user["user_id"]
     working_hours = update_working_hours(db, barber_id, user_id, working_hours_id, working_hours_data.model_dump())
     # Trigger slot generation in background
@@ -71,6 +73,7 @@ def delete_barber_working_hours(
     current_user: dict = Depends(require_verified_email),
     db: Session = Depends(get_db)
 ):
+    current_user = require_active_barber(current_user, db)
     user_id = current_user["user_id"]
     result = delete_working_hours(db, barber_id, user_id, working_hours_id)
     # Trigger slot generation in background

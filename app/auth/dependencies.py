@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.auth.models import User
 from app.clients.models import Client
+from app.barbers.models import Barber
 
 security = HTTPBearer()
 
@@ -44,5 +45,23 @@ def require_active_client(
     client = db.query(Client).filter(Client.user_id == user_id).first()
     if not client or not client.is_active:
         raise InactiveAccountError("Client account is inactive")
+    
+    return user
+
+def require_active_barber(
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Require that the barber account is active (checks database fresh on each request)"""
+    user_id = user.get("user_id")
+    user_type = user.get("user_type")
+    
+    if user_type != "barber":
+        raise ForbiddenError("Not a barber account")
+    
+    # Check database for current is_active status
+    barber = db.query(Barber).filter(Barber.user_id == user_id).first()
+    if not barber or not barber.is_active:
+        raise InactiveAccountError("Barber account is inactive")
     
     return user
