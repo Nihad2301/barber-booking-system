@@ -89,7 +89,7 @@ def test_shop(db_session):
 
 @pytest.fixture
 def test_user(db_session):
-    """Helper to create a test user."""
+    """Helper to create a test user (does not commit - caller handles transaction)."""
     def _create_user(username, email, password, user_type, is_verified=True):
         user = User(
             username=username,
@@ -99,15 +99,14 @@ def test_user(db_session):
             is_verified=is_verified
         )
         db_session.add(user)
-        db_session.commit()
-        db_session.refresh(user)
+        db_session.flush()  # Get ID without committing
         return user
     return _create_user
 
 
 @pytest.fixture
 def test_client(db_session, test_user):
-    """Create a test client with user."""
+    """Create a test client with user (single transaction)."""
     def _create_client(username, email, password, is_active=True):
         user = test_user(username, email, password, "client")
         test_id = str(uuid.uuid4())[:8]
@@ -117,7 +116,7 @@ def test_client(db_session, test_user):
             is_active=is_active
         )
         db_session.add(client)
-        db_session.commit()
+        db_session.commit()  # Single commit for user + client
         db_session.refresh(client)
         return client, user
     return _create_client
@@ -125,7 +124,7 @@ def test_client(db_session, test_user):
 
 @pytest.fixture
 def test_barber(db_session, test_user, test_shop):
-    """Create a test barber with user."""
+    """Create a test barber with user (single transaction)."""
     def _create_barber(username, email, password, is_owner=False, is_active=True):
         user = test_user(username, email, password, "barber")
         test_id = str(uuid.uuid4())[:8]
@@ -138,7 +137,7 @@ def test_barber(db_session, test_user, test_shop):
             is_active=is_active
         )
         db_session.add(barber)
-        db_session.commit()
+        db_session.commit()  # Single commit for user + barber
         db_session.refresh(barber)
         return barber, user
     return _create_barber
