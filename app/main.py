@@ -52,7 +52,12 @@ scheduler.add_job(
 
 @app.on_event("startup")
 def startup_event():
-    scheduler.start()
+    try:
+        scheduler.start()
+    except Exception as e:
+        print(f"ERROR starting scheduler: {e}")
+        import traceback
+        traceback.print_exc()
 
 @app.on_event("shutdown")
 def shutdown_event():
