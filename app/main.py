@@ -1,3 +1,7 @@
+import sys
+sys.stdout.flush()
+sys.stderr.flush()
+
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -52,6 +56,7 @@ scheduler.add_job(
 
 @app.on_event("startup")
 def startup_event():
+    print("STARTUP EVENT CALLED", flush=True)
     # TEMPORARILY DISABLED: scheduler startup is suspected of making the app
     # unresponsive after startup. Re-enable once the root cause is diagnosed.
     # try:
@@ -67,6 +72,13 @@ def shutdown_event():
     if scheduler.running:
         scheduler.shutdown()
 
+print("DEFINING ROOT ROUTE", flush=True)
+
 @app.get("/")
 def read_root():
     return {"message": "Barber Booking System API"}
+
+@app.get("/health")
+def health():
+    print("HEALTH ENDPOINT CALLED", flush=True)
+    return {"status": "ok"}
