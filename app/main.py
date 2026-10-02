@@ -24,6 +24,7 @@ from app.slots.service import generate_next_day_slots
 print("[MAIN] Starting FastAPI app initialization...")
 print(f"[MAIN] Python version: {sys.version}")
 print(f"[MAIN] Working directory: {os.getcwd()}")
+print(f"[MAIN] PORT env var: {os.getenv('PORT', 'NOT SET')}", flush=True)
 
 app = FastAPI(title="Barber Booking System")
 print("[MAIN] FastAPI app created")
