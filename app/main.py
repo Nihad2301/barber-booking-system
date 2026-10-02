@@ -52,16 +52,20 @@ scheduler.add_job(
 
 @app.on_event("startup")
 def startup_event():
-    try:
-        scheduler.start()
-    except Exception as e:
-        print(f"ERROR starting scheduler: {e}")
-        import traceback
-        traceback.print_exc()
+    # TEMPORARILY DISABLED: scheduler startup is suspected of making the app
+    # unresponsive after startup. Re-enable once the root cause is diagnosed.
+    # try:
+    #     scheduler.start()
+    # except Exception as e:
+    #     print(f"ERROR starting scheduler: {e}")
+    #     import traceback
+    #     traceback.print_exc()
+    print("Scheduler startup is disabled")
 
 @app.on_event("shutdown")
 def shutdown_event():
-    scheduler.shutdown()
+    if scheduler.running:
+        scheduler.shutdown()
 
 @app.get("/")
 def read_root():
