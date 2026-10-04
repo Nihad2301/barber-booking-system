@@ -122,6 +122,10 @@ def update_owner_barber(
         if not barber_to_update:
             raise NotFoundError("Barber not found")
 
+        # MVP limitation: Owner cannot deactivate themselves to prevent shop freeze
+        if barber_to_update.is_owner and barber_data.get('is_active') == False:
+            raise ForbiddenError("Owner cannot deactivate themselves. This is an MVP limitation to ensure the shop remains manageable.")
+
         # Update barber fields
         for key, value in barber_data.items():
             if value is not None:
