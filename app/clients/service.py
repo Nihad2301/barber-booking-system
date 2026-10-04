@@ -45,24 +45,22 @@ def get_client(db: Session, client_id: int, requesting_user_id: int, requesting_
     Get client profile with role-based access control:
     - Client can always view their own profile
     - Barber can view client profile only if there exists at least one confirmed/completed booking between them
+    - Combined authorization check prevents client ID enumeration
     """
-    client = db.query(Client).filter(Client.id == client_id).first()
-    if not client:
-        raise NotFoundError("Client not found")
-    
     # Check authorization
     if requesting_user_type == "client":
         # Client can view their own profile
         requesting_client = db.query(Client).filter(Client.user_id == requesting_user_id).first()
-        if requesting_client.id != client_id:
+        if not requesting_client or requesting_client.id != client_id:
             raise ForbiddenError("You can only view your own profile")
+        client = requesting_client
     elif requesting_user_type == "barber":
         # Barber can view client profile only if they have a confirmed/completed booking together
         from app.barbers.models import Barber
         barber = db.query(Barber).filter(Barber.user_id == requesting_user_id).first()
         if not barber:
-            raise ForbiddenError("Barber profile not found")
-        
+            raise ForbiddenError("You can only view clients you have a confirmed or completed booking with")
+
         # Check for confirmed or completed booking between this barber and client
         from app.bookings.models import Booking
         has_booking = db.query(Booking).filter(
@@ -72,12 +70,17 @@ def get_client(db: Session, client_id: int, requesting_user_id: int, requesting_
                 Booking.status.in_(['confirmed', 'completed'])
             )
         ).first()
-        
+
         if not has_booking:
+            raise ForbiddenError("You can only view clients you have a confirmed or completed booking with")
+
+        # Client exists and barber has access - fetch client
+        client = db.query(Client).filter(Client.id == client_id).first()
+        if not client:
             raise ForbiddenError("You can only view clients you have a confirmed or completed booking with")
     else:
         raise ForbiddenError("Invalid user type")
-    
+
     return _client_to_response(client)
 
 def update_client(db: Session, client_id: int, user_id: int, client_data: dict):

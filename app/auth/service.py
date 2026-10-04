@@ -52,32 +52,36 @@ def login_user(db: Session, username: str, password: str):
 def generate_verification_code(db: Session, email: str, length: int = 6, expiry_hours: int = 24) -> str:
     """Generate a random alphanumeric verification code"""
     user = db.query(User).filter(User.email == email).first()
-    if not user:
-        raise NotFoundError("User not found")
 
+    # Only generate code if user exists - prevents email enumeration
+    if user:
+        alphabet = string.ascii_uppercase + string.digits
+        code = ''.join(secrets.choice(alphabet) for _ in range(length))
+        expiry = datetime.utcnow() + timedelta(hours=expiry_hours)
+        user.verification_code = code
+        user.verification_code_expiry = expiry
+        db.commit()
+        return code
+
+    # Return dummy code for non-existent emails to prevent enumeration
+    # Code is not stored, so verification will fail
     alphabet = string.ascii_uppercase + string.digits
-    code = ''.join(secrets.choice(alphabet) for _ in range(length))
-    expiry = datetime.utcnow() + timedelta(hours=expiry_hours)
-    user.verification_code = code
-    user.verification_code_expiry = expiry
-    db.commit()
-    return code
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 def verify_email(db: Session, email: str, code: str):
-    """Verify user email with code"""  
+    """Verify user email with code"""
     user = db.query(User).filter(User.email == email).first()
-    if not user:
+
+    # Generic error for all failure cases to prevent email enumeration
+    if not user or not user.verification_code or not user.verification_code_expiry:
         raise EmailNotVerifiedError("Could not verify email")
-    
-    if not user.verification_code or not user.verification_code_expiry:
-        raise EmailNotVerifiedError("Could not verify email")
-    
+
     if user.verification_code != code:
         raise InvalidCodeError("Could not verify email")
-    
+
     if user.verification_code_expiry < datetime.utcnow():
         raise ExpiredCodeError("Could not verify email")
-    
+
     user.is_verified = True
     user.verification_code = None
     user.verification_code_expiry = None
