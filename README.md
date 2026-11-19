@@ -2,7 +2,7 @@
 
 A backend API that replaces phone-call scheduling in barber shops with fixed booking slots. Each barber has working hours, the system turns those hours into fixed-duration slots, and clients book slots instead of calling at random times.
 
-**Live API docs (Swagger):** `<production-url>/docs`
+**Live API docs (Swagger):** `https://web-production-b9260b.up.railway.app/docs`
 
 ## Why this exists
 
