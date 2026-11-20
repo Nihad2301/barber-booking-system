@@ -135,7 +135,7 @@ Swagger docs are at `http://127.0.0.1:8000/docs`.
 
 - 6 automated tests on the security-critical paths: wrong password, invalid JWT on a protected endpoint, a client reading another client's data, a barber acting on another shop's resource, a deactivated account on a protected endpoint, and a client cancelling another client's booking.
 - 4 separate concurrency tests against a real database (see above).
-- CI runs through GitHub Actions.
+- CI runs through GitHub Actions with automated testing on every push.
 
 The security paths were tested first because a bug there is a security hole, not a cosmetic issue. Most other workflows were tested manually.
 
